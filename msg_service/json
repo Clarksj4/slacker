@@ -53,6 +53,36 @@ http://host/messages?channel_id=1&message_id=2
   }
 }
 
-# An example new message post:
+# To delete a specific message: **YOU MUST USE THE DELETE VERB TYPE **
+http://host/messages?channel_id=1&message_id=2
+# To delete all messages:
+http://host/messages?channel_id=1&message_id=all
 
-curl -i -H "Content-type: application/json" -X POST meat.stewpot.nz:8080/messages -d '{"message": { "channel_id": 1, "user_id": 1, "body":"Message here", "timestamp": 1432279247}}'
+# Successful message deletion response:
+{
+  "msg_del_response": {
+    "response_message": "Messages deleted",
+    "response_code": 0,
+  }
+}
+
+#Failed
+{
+  "msg_del_response": {
+    "response_message": "Various reasons why messages were not deleted",
+    "response_code": 1,
+  }
+}
+
+# An example new message post:
+curl -i -H "Content-type: application/json" -X POST meat.stewpot.nz:8004/messages -d '{"message": { "channel_id": 1, "user_id": 1, "body":"Message here", "timestamp": 1432279247}}'
+
+# An example to delete:
+curl -i -X DELETE 'meat.stewpot.nz:8004/messages/?channel_id=1&message_id=1'
+
+
+
+
+
+
+

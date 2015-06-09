@@ -1,6 +1,7 @@
-import cherrypy
 import requests
 import sys
+import json
+import cherrypy
 lib_path = '..'
 sys.path.append(lib_path)
 import slacker_config
@@ -32,17 +33,17 @@ class SignUpService(object):
     @cherrypy.tools.json_out()
     @cherrypy.tools.json_in()
     def POST(self):
-        new_user = cherrypy.request.json()  # get the new user
+        new_user = cherrypy.request.json  # get the new user
         proceed = True                      # check the new user
-        response = "{'response': 'user is invalid'}"
+        response = {'response': 'invalid'}
         user_assessment = self.GET(new_user['email'], new_user['password'], new_user['screen_name'])
         for key, value in user_assessment.iteritems():
             if value == 'invalid':
                 proceed = False
-
         if proceed:
             heads = {'Content-Type': 'application/json'}
-            response = requests.post("url to user directory", headers=heads, data=new_user).json()
+            url = slacker_config.urls.url['user_directory'] + ':' + str(slacker_config.urls.port['user_directory'])
+            response = requests.post(url, data=json.dumps(new_user), headers=heads).json()            
         return response
 
 
@@ -52,7 +53,6 @@ if __name__ == "__main__":
     conf = {
         '/': {
             'request.dispatch': cherrypy.dispatch.MethodDispatcher(),
-            # 'tools.sessions.on': True,
             'tools.response_headers.on': True,
             'tools.response_headers.headers': [('Content-Type', 'application/json')],
         }

@@ -2,8 +2,8 @@ url = {
     'user_directory' : 'http://localhost',
     'auth'           : 'http://localhost',
     'signup'       : 'http://localhost',
-    'channels'       : 'http://localhost',
-    'messages'       : 'http://localhost',
+    'messages'       : 'http://meat.stewpot.nz',
+    'channels'       : 'http://alexandermcneill.nz',
     'msg_reader'     : 'http://localhost',
     'msg_writer'     : 'http://localhost',
 }

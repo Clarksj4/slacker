@@ -1,6 +1,10 @@
 import unittest
 import requests
 import json
+import sys
+lib_path = '..'
+sys.path.append(lib_path)
+import slacker_config
 
 # Author: Matt Ankerson
 # Date: 22 May 2015
@@ -9,7 +13,7 @@ import json
 class SignUpTests(unittest.TestCase):
 
     def setUp(self):
-        self.service_url = "http://127.0.0.1:8080/"
+        self.service_url = slacker_config.urls.url['signup'] + ":" + str(slacker_config.urls.port['signup'])
         self.heads = {'Content-Type': 'application/json'}
 
         self.good_user = {'email': 'yogi@bear', 'password': 'yellowstone', 'screen_name': 'picnic_baskets'}
@@ -35,8 +39,9 @@ class SignUpTests(unittest.TestCase):
         self.assertDictEqual(self.response_bad_scrn_name, check_bad_scrn_nme)
 
     def test_post(self):
-        new_user_test = requests.post(self.service_url, data=json.dumps(self.good_user))
-        # self.assertDictEqual(self.successful, new_user_test)
+        #good_user = requests.post(self.service_url, data=json.dumps(self.good_user), headers=self.heads).json()
+        good_user = requests.post(self.service_url, data=json.dumps(self.good_user), headers=self.heads).json()
+        self.assertDictEqual(good_user, self.add_user_successful)
 
 if __name__ == '__main__':
     unittest.main()
