@@ -24,8 +24,18 @@ class MessageWriterService:
     @cherrypy.tools.json_out()
     @cherrypy.tools.json_in()
     def POST(self):
-        """ Takes a new message request; asks authorisation service to validate and convert session_id to a user_id;
-        posts user_id, channel_id, and message_body to message service.
+        """ Handles the posting and authorisation of messages en route to the message service. Takes a new message
+        request; asks authorisation service to validate and convert session_id to a user_id; posts user_id, channel_id,
+        and message_body to message service.
+        Messages posted to this service must be valid json formatted in the following manner:
+        {
+            "message":
+            {
+                "channel_id": 0,
+                "session_key": 0,
+                "body": "Hello World.",
+            }
+        }
         :return: json data describing the success or failure of the POST request. A write failure will occur when the
         posted json data is missing a parameter(s), or when the authorisation or message services return an error.
         """
@@ -34,39 +44,45 @@ class MessageWriterService:
         post_data = cherrypy.request.json
 
         try:
-            # extract variables from json data
+            # attempt to extract variables from json data. If the json is not in the correct format (i.e. a parameter
+            # is missing) a KeyError exception will be thrown. If the post data is not valid json a TypeError will be
+            # thrown.
             session_key = post_data['message']['session_key']
             channel_id = post_data['message']['channel_id']
             message_body = post_data['message']['body']
-        except KeyError:
-            # in the event of a parameter missing, return an error message.
+        except TypeError:
             return {"new_msg_response": {
-                "response_message": "Invalid POST request format: parameter missing",
+                "response_message": "Invalid POST request: post data did not contain valid json",
+                "response_code": 31}}
+        except KeyError:
+            return {"new_msg_response": {
+                "response_message": "Invalid POST request: post data was missing parameter(s)",
                 "response_code": 32}}
         try:
-            # attempt to authorize the given session key.
+            # attempt to authorize the given session key and get a corresponding user id. In the event of being unable
+            # to connect to the authorisation service a ConnectionError will be thrown.
             authorisation_service_response = self._authorize(session_key)
         except ConnectionError:
             return {"new_msg_response": {
-                "response_message": "ConnectionError: Unable to connect to authorisation service",
+                "response_message": "ConnectionError: unable to connect to authorisation service",
                 "response_code": 33}}
 
         try:
             # attempt to extract user_id from returned response. If the authorisation request failed no user_id will be
-            # present in response message.
+            # present in response message and a KeyError exception will be thrown.
             user_id = authorisation_service_response['user_id']
         except KeyError:
-            # in the event of the authorisation failing, return an error message.
             return {"new_msg_response": {
                 "response_message": "Invalid session key: authorisation failed",
                 "response_code": 34}}
 
         try:
-            # attempt to post message to message_service
+            # attempt to post message to message_service. In the even of being unable to connect to the message service
+            # a ConnectionError will be thrown.
             message_service_response = self._write(channel_id, user_id, message_body)
         except ConnectionError:
             return {"new_msg_response": {
-                "response_message": "ConnectionError: Unable to connect to message service",
+                "response_message": "ConnectionError: unable to connect to message service",
                 "response_code": 35}}
 
         # message service response will contain success or failure information.
