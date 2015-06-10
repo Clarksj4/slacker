@@ -1,6 +1,7 @@
 __author__ = 'clarksj4 & camertp1'
 
 import requests
+from requests import ConnectionError
 import cherrypy
 import json
 import sys
@@ -39,12 +40,16 @@ class MessageWriterService:
             message_body = post_data['message']['body']
         except KeyError:
             # in the event of a parameter missing, return an error message.
-            return {"new_msg_response": {"response_message": "Invalid POST request format: parameter missing",
-                                         "response_code": 32}}
-
-        # attempt to authorize the given session key.
-        authorisation_service_response = self._authorize(session_key)
-        print authorisation_service_response
+            return {"new_msg_response": {
+                "response_message": "Invalid POST request format: parameter missing",
+                "response_code": 32}}
+        try:
+            # attempt to authorize the given session key.
+            authorisation_service_response = self._authorize(session_key)
+        except ConnectionError:
+            return {"new_msg_response": {
+                "response_message": "ConnectionError: Unable to connect to authorisation service",
+                "response_code": 33}}
 
         try:
             # attempt to extract user_id from returned response. If the authorisation request failed no user_id will be
@@ -52,11 +57,17 @@ class MessageWriterService:
             user_id = authorisation_service_response['user_id']
         except KeyError:
             # in the event of the authorisation failing, return an error message.
-            return {"new_msg_response": {"response_message": "Invalid session key: authorisation failed",
-                                         "response_code": 33}}
+            return {"new_msg_response": {
+                "response_message": "Invalid session key: authorisation failed",
+                "response_code": 34}}
 
-        # attempt to post message to message_service
-        message_service_response = self._write(channel_id, user_id, message_body)
+        try:
+            # attempt to post message to message_service
+            message_service_response = self._write(channel_id, user_id, message_body)
+        except ConnectionError:
+            return {"new_msg_response": {
+                "response_message": "ConnectionError: Unable to connect to message service",
+                "response_code": 35}}
 
         # message service response will contain success or failure information.
         return message_service_response
