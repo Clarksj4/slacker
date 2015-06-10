@@ -2,10 +2,11 @@ __author__ = 'clarksj4 & camertp1'
 
 import requests
 import cherrypy
+import json
 import sys
 lib_path = '..'
 sys.path.append(lib_path)
-import slacker_config
+from slacker_config import urls
 
 
 class MessageWriterService:
@@ -36,20 +37,23 @@ class MessageWriterService:
             session_key = post_data['message']['session_key']
             channel_id = post_data['message']['channel_id']
             message_body = post_data['message']['body']
-        except IndexError:
+        except KeyError:
             # in the event of a parameter missing, return an error message.
-            return {'error': 'Invalid POST request format: parameter absent'}  # TODO: follow error format of other returned error messages
+            return {"new_msg_response": {"response_message": "Invalid POST request format: parameter missing",
+                                         "response_code": 32}}
 
         # attempt to authorize the given session key.
         authorisation_service_response = self._authorize(session_key)
+        print authorisation_service_response
 
         try:
             # attempt to extract user_id from returned response. If the authorisation request failed no user_id will be
             # present in response message.
             user_id = authorisation_service_response['user_id']
-        except IndexError:
+        except KeyError:
             # in the event of the authorisation failing, return an error message.
-            return {'error': 'Failed to authorize session key'}  # TODO: follow error format of other return error messages
+            return {"new_msg_response": {"response_message": "Invalid session key: authorisation failed",
+                                         "response_code": 33}}
 
         # attempt to post message to message_service
         message_service_response = self._write(channel_id, user_id, message_body)
@@ -65,7 +69,7 @@ class MessageWriterService:
         a valid user id corresponding to the given session id. On failure, the json data will contain an error message.
         """
         session_key_json = {'session_key': session_key}
-        authorisation_service_url = url['auth'] + ":" + port['url']
+        authorisation_service_url = str(urls.url['auth']) + ":" + str(urls.port['auth'])
 
         # posts session key json data to authorisation service and returns response. Authorisation service response will
         # be json data containing either an error message or a user id.
@@ -81,7 +85,7 @@ class MessageWriterService:
         :return: json data describing the success or failure of the POST request.
         """
         new_message_json = {'new_msg': {'channel_id': channel_id, 'user_id': user_id, 'message_string': message_body}}
-        message_service_url = url['channels'] + ':' + port['channels']
+        message_service_url = urls.url['channels'] + ':' + urls.port['channels']
 
         # posts new message json data to message service and returns response. Message service response will be json
         # data containing a success or failure message and associated error code.
@@ -95,5 +99,5 @@ if __name__ == '__main__':
               'tools.response_headers.on': True,
               'tools.response_headers.headers': [('Content-Type',
                                                   'application/json')]}}
-    cherrypy.config.update({'server.socket_port': port['msg_writer']})
+    cherrypy.config.update({'server.socket_port': urls.port['msg_writer']})
     cherrypy.quickstart(MessageWriterService(), '/', conf)

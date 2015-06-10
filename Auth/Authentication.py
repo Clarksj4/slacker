@@ -1,5 +1,10 @@
 import cherrypy
+import json
 import uuid
+import sys
+lib_path = '..'
+sys.path.append(lib_path)
+from slacker_config import urls
 
 class AuthService():
     exposed = True
@@ -53,13 +58,13 @@ class AuthService():
     # Checks if the user has a current session running, returns true or false
     @cherrypy.tools.json_out()
     @cherrypy.tools.json_in()
-    def check_current_session(self):
+    def POST(self):
         key = cherrypy.request.json
         #check if the current session is in use
-        if key in self.sessions:
-            return True # Check with message writers about response format
+        if key['session_key'] in self.sessions:
+            return {'user_id': 'steve'} # Check with message writers about response format
         else:
-            return False
+            return {'test': 'json'}
 
 
 
@@ -72,4 +77,5 @@ if __name__ == "__main__":
             'tools.response_headers.headers': [('Content-Type', 'text/plain')],
         }
     }
+    cherrypy.config.update({'server.socket_port': urls.port['auth']})
     cherrypy.quickstart(AuthService(), '/', conf)
